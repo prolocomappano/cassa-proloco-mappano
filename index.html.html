@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Meta tag per farla girare liscia su iPad come PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Cassa Pro Loco Mappano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overscroll-behavior: none;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #1a237e; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen w-screen overflow-hidden flex flex-col font-sans">
+
+    <!-- HEADER FISSO -->
+    <header class="bg-[#1a237e] text-white shadow-md px-4 py-2 flex items-center justify-between shrink-0 h-16">
+        <div class="flex items-center space-x-3">
+            <div id="logo1-container" class="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow border border-indigo-900">
+                <span class="text-xs text-slate-400 font-bold text-center p-1">Logo 1</span>
+            </div>
+            <div id="logo2-container" class="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow border border-indigo-900">
+                <span class="text-xs text-slate-400 font-bold text-center p-1">Logo 2</span>
+            </div>
+            <div>
+                <h1 class="text-lg font-black tracking-wide leading-tight">PRO LOCO MAPPANO</h1>
+                <p class="text-xs text-blue-200" id="current-date">Oggi</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button onclick="switchTab('cassa')" id="btn-tab-cassa" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-blue-400">
+                <span class="text-xl">🛒</span><span>Cassa</span>
+            </button>
+            <button onclick="switchTab('prodotti')" id="btn-tab-prodotti" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
+                <span class="text-xl">📋</span><span>Prodotti</span>
+            </button>
+            <button onclick="switchTab('statistiche')" id="btn-tab-statistiche" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
+                <span class="text-xl">📊</span><span>Report</span>
+            </button>
+            <button onclick="switchTab('impostazioni')" id="btn-tab-impostazioni" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
+                <span class="text-xl">⚙️</span><span>Impostazioni</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- CORPO PRINCIPALE -->
+    <main class="flex-1 flex overflow-hidden">
+        <!-- ================= SEZIONE CASSA ================= -->
+        <section id="view-cassa" class="flex-1 flex h-full overflow-hidden">
+            <div class="flex-1 p-4 overflow-y-auto bg-slate-100 border-r border-slate-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-lg font-black text-slate-700 flex items-center gap-2">
+                        <span>🗂️</span> Catalogo Prodotti
+                    </h2>
+                </div>
+                <div id="products-grid" class="grid grid-cols-3 gap-3 pb-6">
+                    <!-- Generato via JS -->
+                </div>
+            </div>
+
+            <div class="w-[420px] bg-white flex flex-col h-full shadow-2xl shrink-0">
+                <div class="p-3 bg-indigo-50 border-b border-indigo-100 flex justify-between items-center">
+                    <h3 class="font-black text-indigo-900 text-base flex items-center gap-2"><span>🧾</span> Scontrino Attuale</h3>
+                    <button onclick="clearCart()" class="text-xs bg-red-100 text-red-700 px-2.5 py-1.5 rounded-lg font-bold hover:bg-red-200 active:scale-95 transition">Svuota</button>
+                </div>
+                <div id="cart-items" class="flex-1 overflow-y-auto p-3 space-y-2 divide-y divide-slate-100">
+                    <!-- Generato via JS -->
+                </div>
+                <div class="p-4 bg-slate-50 border-t border-slate-200 shadow-inner">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-base font-bold text-slate-600">TOTALE:</span>
+                        <span id="cart-total" class="text-3xl font-black text-[#1a237e]">€0,00</span>
+                    </div>
+                    <button onclick="chiediOffertaLiberaEIncassa()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-2xl font-black text-xl shadow-lg transition flex items-center justify-center gap-3 border-2 border-emerald-400">
+                        <span>💰</span> INCASSA SUBITO
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SEZIONE GESTIONE PRODOTTI ================= -->
+        <section id="view-prodotti" class="flex-1 hidden h-full overflow-y-auto p-6 bg-slate-100">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-slate-800">Gestione Listino Prodotti</h2>
+                    <button onclick="openProductModal()" class="bg-[#1a237e] text-white px-4 py-2.5 rounded-xl font-bold shadow-md hover:bg-indigo-900 transition flex items-center gap-2">
+                        <span>➕</span> Nuovo Prodotto
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl shadow overflow-hidden border border-slate-200">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="p-4">Emoji & Nome</th>
+                                <th class="p-4">Prezzo Base</th>
+                                <th class="p-4">Pz. Venduti</th>
+                                <th class="p-4">Ricavo Totale</th>
+                                <th class="p-4 text-right">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SEZIONE STATISTICHE / REPORT ================= -->
+        <section id="view-statistiche" class="flex-1 hidden h-full overflow-y-auto p-6 bg-slate-100">
+            <div class="max-w-6xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-slate-800">Report Vendite e Incassi</h2>
+                    <button onclick="resetStats()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-red-100 transition">
+                        🔄 Reset Giornaliero
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="flex-1 bg-white p-6 rounded-2xl shadow border border-slate-200">
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Incasso Totale</p>
+                                <h3 id="stat-total-incasso" class="text-4xl font-black text-emerald-600">€0,00</h3>
+                            </div>
+                            <div class="flex-1 bg-white p-6 rounded-2xl shadow border border-slate-200">
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pezzi Venduti</p>
+                                <h3 id="stat-total-pezzi" class="text-4xl font-black text-[#1a237e]">0</h3>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+                            <h3 class="font-bold text-slate-700 mb-4 text-base border-b pb-2">Dettaglio Prodotti Venduti</h3>
+                            <div id="stat-breakdown" class="grid grid-cols-2 gap-4"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-200 flex flex-col h-[500px]">
+                        <h3 class="font-bold text-slate-700 mb-4 text-base border-b pb-2">Storico Transazioni</h3>
+                        <div id="transactions-list" class="flex-1 overflow-y-auto space-y-3 pr-2"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SEZIONE IMPOSTAZIONI ================= -->
+        <section id="view-impostazioni" class="flex-1 hidden h-full overflow-y-auto p-6 bg-slate-100">
+            <div class="max-w-xl mx-auto bg-white rounded-2xl shadow p-6 border border-slate-200">
+                <h2 class="text-xl font-black text-slate-800 mb-4">Carica Loghi Evento</h2>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">
+                        <p class="font-bold text-sm mb-2 text-slate-700">Logo 1</p>
+                        <input type="file" accept="image/*" onchange="handleLogoUpload(event, 1)" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+                    </div>
+                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">
+                        <p class="font-bold text-sm mb-2 text-slate-700">Logo 2</p>
+                        <input type="file" accept="image/*" onchange="handleLogoUpload(event, 2)" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+                    </div>
+                </div>
+                <button onclick="clearLogos()" class="w-full py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition">Rimuovi Loghi</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODALI -->
+    <div id="custom-alert-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-[60]">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div id="custom-alert-icon" class="text-4xl mb-2">⚠️</div>
+            <h3 id="custom-alert-title" class="text-xl font-black text-slate-800 mb-2">Attenzione</h3>
+            <p id="custom-alert-msg" class="text-sm text-slate-500 mb-6">Messaggio</p>
+            <div id="custom-alert-buttons" class="flex space-x-3"></div>
+        </div>
+    </div>
+
+    <div id="free-offer-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="text-4xl mb-2">☕</div>
+            <h3 class="text-xl font-black text-slate-800 mb-1">Offerta Libera</h3>
+            <input type="number" step="0.5" id="free-offer-amount" class="w-full px-4 py-3 rounded-xl border-2 border-indigo-200 text-center text-2xl font-black text-[#1a237e] mb-6 focus:outline-none focus:border-[#1a237e]" placeholder="0.00">
+            <div class="flex space-x-3">
+                <button onclick="chiudiOffertaLibera()" class="flex-1 py-3.5 bg-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:bg-slate-300 transition">Annulla</button>
+                <button onclick="confermaIncassoOfferta()" class="flex-1 py-3.5 bg-emerald-600 text-white rounded-xl font-black text-lg shadow-lg hover:bg-emerald-700 transition">Incassa</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="product-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
+            <h3 id="modal-title" class="text-xl font-black text-slate-800 mb-4">Nuovo Prodotto</h3>
+            <input type="hidden" id="edit-prod-id">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Prodotto</label>
+                    <input type="text" id="prod-name" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-medium text-slate-800">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Emoji</label>
+                        <input type="text" id="prod-emoji" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-center text-xl">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prezzo Base (€)</label>
+                        <input type="number" step="0.5" id="prod-price" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-medium text-slate-800">
+                    </div>
+                </div>
+                <div class="border-t border-slate-100 pt-4">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Promozione opzionale</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà Promo</label>
+                            <input type="number" id="prod-promo-qty" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prezzo Promo (€)</label>
+                            <input type="number" step="0.5" id="prod-promo-price" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="prod-is-free" class="w-5 h-5 accent-[#1a237e] rounded">
+                    <label for="prod-is-free" class="text-sm font-bold text-slate-700">Offerta Libera</label>
+                </div>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeProductModal()" class="flex-1 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-300 transition">Annulla</button>
+                <button onclick="saveProduct()" class="flex-1 py-3 bg-[#1a237e] text-white rounded-xl font-bold shadow hover:bg-indigo-900 transition">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        window.addEventListener('beforeunload', function (e) {
+            if (cart.length > 0) {
+                e.preventDefault();
+                e.returnValue = 'Hai articoli nel carrello, sicuro di voler uscire?';
+            }
+        });
+
+        const firebaseConfig = {
+            databaseURL: "https://cassa-proloco-mappano-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const defaultProducts = [
+            { id: '1', name: 'Castagne', emoji: '🌰', price: 3.50, promoQty: 0, promoPrice: 0, isFree: false, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 },
+            { id: '2', name: 'Frittelle', emoji: '🍩', price: 3.50, promoQty: 0, promoPrice: 0, isFree: false, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 },
+            { id: '3', name: 'Vin Brulè', emoji: '🍷', price: 3.00, promoQty: 2, promoPrice: 5.00, isFree: false, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 },
+            { id: '4', name: 'Cioccolata', emoji: '☕', price: 0.00, promoQty: 0, promoPrice: 0, isFree: true, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 },
+            { id: '5', name: 'Tè al limone', emoji: '🍋', price: 2.50, promoQty: 0, promoPrice: 0, isFree: false, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 },
+            { id: '6', name: 'Tè alla pesca', emoji: '🍑', price: 2.50, promoQty: 0, promoPrice: 0, isFree: false, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 },
+            { id: '7', name: 'Acqua', emoji: '💧', price: 1.00, promoQty: 0, promoPrice: 0, isFree: false, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 }
+        ];
+
+        let products = defaultProducts;
+        let cart = [];
+        let transactions = [];
+        let logos = { logo1: null, logo2: null };
+
+        function loadData() {
+            db.ref('EVENTO_PROLOCO_MAPPANO/PRODOTTI').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    if (Array.isArray(data)) {
+                        products = data;
+                        saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products);
+                    } else {
+                        products = Object.values(data);
+                    }
+                } else {
+                    saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', defaultProducts);
+                    products = defaultProducts;
+                }
+                renderProductsGrid();
+                renderProductsTable();
+            });
+
+            db.ref('EVENTO_PROLOCO_MAPPANO/TRANSAZIONI').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    let transObj = data;
+                    transactions = transObj.STORICO_SCONTRINI ? Object.values(transObj.STORICO_SCONTRINI) : [];
+                } else {
+                    transactions = [];
+                }
+                updateStatsUI();
+            });
+
+            db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').on('value', (snapshot) => {
+                const data = snapshot.val();
+                logos = data || { logo1: null, logo2: null };
+                renderLogos();
+            });
+        }
+        
+        function saveData(key, data) {
+            if (key === 'EVENTO_PROLOCO_MAPPANO/PRODOTTI') {
+                let obj = {};
+                data.forEach(p => {
+                    let safeKey = p.name.replace(/[\.#$\/\[\]]/g, '_');
+                    obj[safeKey] = p;
+                });
+                db.ref('EVENTO_PROLOCO_MAPPANO/PRODOTTI').set(obj);
+            } else if (key === 'EVENTO_PROLOCO_MAPPANO/LOGOS') {
+                db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').set(data);
+            }
+        }
+
+        function salvaTransazioniNelCloud() {
+            let incassoTotale = transactions.reduce((acc, t) => acc + (t.TOTALE_INCASSATO_SCONTRINO || 0), 0);
+            
+            let objStorico = {};
+            transactions.forEach(t => { objStorico[t.id] = t; });
+
+            let payload = {
+                INCASSO_TOTALE: Number(incassoTotale.toFixed(2)),
+                STORICO_SCONTRINI: objStorico
+            };
+
+            db.ref('EVENTO_PROLOCO_MAPPANO/TRANSAZIONI').set(payload);
+        }
+
+        let alertConfirmCallback = null;
+        function showCustomAlert(title, message, icon = '⚠️') {
+            document.getElementById('custom-alert-icon').innerText = icon;
+            document.getElementById('custom-alert-title').innerText = title;
+            document.getElementById('custom-alert-msg').innerText = message;
+            document.getElementById('custom-alert-buttons').innerHTML = `<button onclick="closeCustomAlert()" class="w-full py-3 bg-[#1a237e] text-white rounded-xl font-bold shadow hover:bg-indigo-900 transition">OK</button>`;
+            document.getElementById('custom-alert-modal').classList.remove('hidden');
+            document.getElementById('custom-alert-modal').classList.add('flex');
+        }
+
+        function showCustomConfirm(title, message, confirmText, callback, icon = '❓') {
+            document.getElementById('custom-alert-icon').innerText = icon;
+            document.getElementById('custom-alert-title').innerText = title;
+            document.getElementById('custom-alert-msg').innerText = message;
+            alertConfirmCallback = callback;
+            document.getElementById('custom-alert-buttons').innerHTML = `
+                <button onclick="closeCustomAlert(false)" class="flex-1 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-300 transition">Annulla</button>
+                <button onclick="closeCustomAlert(true)" class="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold shadow hover:bg-red-700 transition">${confirmText}</button>
+            `;
+            document.getElementById('custom-alert-modal').classList.remove('hidden');
+            document.getElementById('custom-alert-modal').classList.add('flex');
+        }
+
+        function closeCustomAlert(result = null) {
+            document.getElementById('custom-alert-modal').classList.remove('flex');
+            document.getElementById('custom-alert-modal').classList.add('hidden');
+            if (result === true && alertConfirmCallback) alertConfirmCallback();
+            alertConfirmCallback = null;
+        }
+
+        window.onload = function() {
+            loadData();
+            updateCartUI();
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+        };
+
+        function switchTab(tabName) {
+            ['cassa', 'prodotti', 'statistiche', 'impostazioni'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`btn-tab-${t}`).className = "flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800";
+            });
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            document.getElementById(`btn-tab-${tabName}`).className = "flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-blue-400";
+        }
+
+        function renderProductsGrid() {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = '';
+            products.forEach(p => {
+                let promoText = p.promoQty > 0 ? `<span class="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full mt-1 inline-block border border-indigo-100">${p.promoQty} a €${p.promoPrice.toFixed(2)}</span>` : '';
+                let priceText = p.isFree ? `<span class="text-amber-600 font-bold text-sm">Offerta Libera</span>` : `<span class="text-slate-700 font-black text-base">€${p.price.toFixed(2)}</span>`;
+                grid.innerHTML += `
+                    <button onclick="addToCart('${p.id}')" class="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md border border-slate-200 flex flex-col items-center justify-center text-center transition active:scale-95 h-36">
+                        <span class="text-4xl mb-1">${p.emoji}</span>
+                        <span class="font-bold text-slate-800 text-sm line-clamp-1">${p.name}</span>
+                        ${priceText}
+                        ${promoText}
+                    </button>
+                `;
+            });
+        }
+
+        function addToCart(productId) {
+            const prod = products.find(p => p.id === productId);
+            const item = cart.find(i => i.id === productId);
+            if (item) item.qty++; else cart.push({ ...prod, qty: 1, customPrice: 0 });
+            updateCartUI();
+        }
+
+        function changeQty(productId, delta) {
+            const item = cart.find(i => i.id === productId);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) cart = cart.filter(i => i.id !== productId);
+            updateCartUI();
+        }
+
+        function clearCart() { cart = []; updateCartUI(); }
+
+        function calculateCartTotal() {
+            let total = 0;
+            cart.forEach(item => {
+                if (item.isFree) total += (item.customPrice || 0) * item.qty;
+                else if (item.promoQty > 0 && item.promoPrice > 0) {
+                    let promoBundles = Math.floor(item.qty / item.promoQty);
+                    let remainder = item.qty % item.promoQty;
+                    total += (promoBundles * item.promoPrice) + (remainder * item.price);
+                } else total += item.price * item.qty;
+            });
+            return total;
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            if (cart.length === 0) {
+                container.innerHTML = `<div class="text-center text-slate-400 py-12"><p class="text-4xl mb-2">🛍️</p><p class="text-sm font-medium">Nessun prodotto selezionato</p></div>`;
+            } else {
+                container.innerHTML = '';
+                cart.forEach(item => {
+                    let itemTotal = item.isFree ? (item.customPrice || 0) * item.qty : 
+                                   (item.promoQty > 0 && item.promoPrice > 0) ? 
+                                   (Math.floor(item.qty / item.promoQty) * item.promoPrice + (item.qty % item.promoQty) * item.price) : 
+                                   item.price * item.qty;
+                    container.innerHTML += `
+                        <div class="flex items-center justify-between py-2.5">
+                            <div class="flex-1 pr-2"><h4 class="font-bold text-slate-800 text-sm flex items-center gap-1.5"><span>${item.emoji}</span> ${item.name}</h4></div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-black flex items-center justify-center hover:bg-slate-200">-</button>
+                                <span class="font-bold text-sm w-5 text-center">${item.qty}</span>
+                                <button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-black flex items-center justify-center hover:bg-slate-200">+</button>
+                            </div>
+                            <span class="font-black text-slate-800 text-sm w-16 text-right">€${itemTotal.toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('cart-total').innerText = `€${calculateCartTotal().toFixed(2)}`;
+        }
+
+        function chiediOffertaLiberaEIncassa() {
+            if (cart.length === 0) return;
+            if (cart.some(i => i.isFree)) {
+                document.getElementById('free-offer-amount').value = '';
+                document.getElementById('free-offer-modal').classList.remove('hidden');
+                document.getElementById('free-offer-modal').classList.add('flex');
+            } else finalizzaIncasso();
+        }
+
+        function chiudiOffertaLibera() {
+            document.getElementById('free-offer-modal').classList.remove('flex');
+            document.getElementById('free-offer-modal').classList.add('hidden');
+        }
+
+        function confermaIncassoOfferta() {
+            const val = parseFloat(document.getElementById('free-offer-amount').value);
+            if (isNaN(val) || val < 0) { showCustomAlert("Importo Non Valido", "Inserisci un importo valido.", "❌"); return; }
+            cart.forEach(i => { if (i.isFree) i.customPrice = val; });
+            chiudiOffertaLibera(); finalizzaIncasso();
+        }
+
+        function finalizzaIncasso() {
+            let cartItemsClean = cart.map(i => {
+                let prezzoTotale = i.isFree ? (i.customPrice || 0) * i.qty : 
+                                  (i.promoQty > 0 && i.promoPrice > 0) ? 
+                                  (Math.floor(i.qty / i.promoQty) * i.promoPrice + (i.qty % i.promoQty) * i.price) : 
+                                  i.price * i.qty;
+                
+                let prod = products.find(p => p.id === i.id);
+                if (prod) {
+                    prod.QUANTITA_VENDUTA = (prod.QUANTITA_VENDUTA || 0) + i.qty;
+                    prod.RICAVO_TOTALE = (prod.RICAVO_TOTALE || 0) + prezzoTotale;
+                }
+
+                return {
+                    ARTICOLO_ACQUISTATO: i.name,
+                    EMOJI: i.emoji,
+                    QUANTITA: i.qty,
+                    PREZZO_TOTALE_ARTICOLO: prezzoTotale
+                };
+            });
+
+            let transazione = {
+                id: Date.now().toString(),
+                ORARIO: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+                DETTAGLIO_ARTICOLI: cartItemsClean,
+                TOTALE_INCASSATO_SCONTRINO: calculateCartTotal()
+            };
+
+            transactions.unshift(transazione);
+            
+            salvaTransazioniNelCloud();
+            saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products);
+            
+            cart = []; updateCartUI(); updateStatsUI();
+        }
+
+        function updateStatsUI() {
+            let totalIncasso = 0, totalPezzi = 0;
+            transactions.forEach(t => {
+                totalIncasso += (t.TOTALE_INCASSATO_SCONTRINO || 0);
+                let itemsList = t.DETTAGLIO_ARTICOLI || [];
+                itemsList.forEach(i => {
+                    let qty = i.QUANTITA || 0;
+                    totalPezzi += qty;
+                });
+            });
+
+            document.getElementById('stat-total-incasso').innerText = `€${totalIncasso.toFixed(2)}`;
+            document.getElementById('stat-total-pezzi').innerText = totalPezzi;
+
+            const breakdownContainer = document.getElementById('stat-breakdown');
+            breakdownContainer.innerHTML = '';
+            
+            let articoliVenduti = products.filter(p => p.QUANTITA_VENDUTA > 0);
+            
+            if (articoliVenduti.length === 0) {
+                breakdownContainer.innerHTML = `<p class="text-sm text-slate-400 col-span-2 text-center py-2">Ancora nessuna vendita.</p>`;
+            } else {
+                articoliVenduti.forEach(p => {
+                    breakdownContainer.innerHTML += `<div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100"><span class="text-sm font-bold text-slate-700 flex items-center gap-2"><span>${p.emoji}</span> ${p.name}</span><span class="font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md text-sm">${p.QUANTITA_VENDUTA} pz</span></div>`;
+                });
+            }
+
+            const listContainer = document.getElementById('transactions-list');
+            if (transactions.length === 0) listContainer.innerHTML = `<p class="text-slate-400 text-sm text-center py-4">Nessuna transazione registrata.</p>`;
+            else {
+                listContainer.innerHTML = '';
+                transactions.forEach(t => {
+                    let itemsList = t.DETTAGLIO_ARTICOLI || [];
+                    let descItems = itemsList.map(i => `${i.QUANTITA}x ${i.ARTICOLO_ACQUISTATO}`).join(', ');
+                    let orario = t.ORARIO || '';
+                    let totale = t.TOTALE_INCASSATO_SCONTRINO || 0;
+                    listContainer.innerHTML += `
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1"><span class="font-bold text-indigo-900 bg-indigo-100 px-1.5 py-0.5 rounded text-xs">${orario}</span><span class="font-black text-emerald-600 text-base">€${totale.toFixed(2)}</span></div>
+                                <span class="text-slate-500 font-medium text-xs">${descItems}</span>
+                            </div>
+                            <button onclick="stornaScontrino('${t.id}')" class="ml-3 bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-red-200 transition">Storna</button>
+                        </div>`;
+                });
+            }
+        }
+
+        function stornaScontrino(id) { 
+            showCustomConfirm("Storna Scontrino", "Sei sicuro di voler eliminare questo scontrino?", "Sì, Elimina", () => { 
+                let tToVoid = transactions.find(t => t.id === id);
+                if (tToVoid && tToVoid.DETTAGLIO_ARTICOLI) {
+                    tToVoid.DETTAGLIO_ARTICOLI.forEach(item => {
+                        let prod = products.find(p => p.name === item.ARTICOLO_ACQUISTATO);
+                        if (prod) {
+                            prod.QUANTITA_VENDUTA = Math.max(0, (prod.QUANTITA_VENDUTA || 0) - item.QUANTITA);
+                            prod.RICAVO_TOTALE = Math.max(0, (prod.RICAVO_TOTALE || 0) - item.PREZZO_TOTALE_ARTICOLO);
+                        }
+                    });
+                    saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products);
+                }
+
+                transactions = transactions.filter(t => t.id !== id); 
+                salvaTransazioniNelCloud(); 
+                updateStatsUI(); 
+            }, "🗑️"); 
+        }
+
+        function resetStats() { 
+            if (transactions.length === 0) return; 
+            showCustomConfirm("Reset Giornaliero", "Vuoi azzerare tutte le statistiche? Operazione irreversibile.", "Azzera Tutto", () => { 
+                products.forEach(p => {
+                    p.QUANTITA_VENDUTA = 0;
+                    p.RICAVO_TOTALE = 0;
+                });
+                saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products);
+
+                transactions = []; 
+                db.ref('EVENTO_PROLOCO_MAPPANO/TRANSAZIONI').remove(); 
+                updateStatsUI(); 
+            }, "💣"); 
+        }
+
+        function renderProductsTable() {
+            const tbody = document.getElementById('products-table-body');
+            tbody.innerHTML = '';
+            products.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-4 flex items-center gap-3"><span class="text-2xl">${p.emoji}</span><span class="font-bold text-slate-800">${p.name}</span></td>
+                        <td class="p-4 text-slate-600">${p.isFree ? 'Offerta Libera' : `€${p.price.toFixed(2)}`}</td>
+                        <td class="p-4 font-black text-indigo-700">${p.QUANTITA_VENDUTA || 0} pz</td>
+                        <td class="p-4 font-black text-emerald-600">€${(p.RICAVO_TOTALE || 0).toFixed(2)}</td>
+                        <td class="p-4 text-right space-x-3"><button onclick="openProductModal('${p.id}')" class="text-indigo-600 font-bold">Modifica</button> <button onclick="deleteProduct('${p.id}')" class="text-red-500 font-bold">Elimina</button></td>
+                    </tr>`;
+            });
+        }
+
+        function openProductModal(prodId = null) {
+            document.getElementById('product-modal').classList.remove('hidden'); document.getElementById('product-modal').classList.add('flex');
+            if (prodId) {
+                const p = products.find(x => x.id === prodId);
+                document.getElementById('modal-title').innerText = 'Modifica Prodotto'; document.getElementById('edit-prod-id').value = p.id; document.getElementById('prod-name').value = p.name; document.getElementById('prod-emoji').value = p.emoji; document.getElementById('prod-price').value = p.price; document.getElementById('prod-promo-qty').value = p.promoQty || ''; document.getElementById('prod-promo-price').value = p.promoPrice || ''; document.getElementById('prod-is-free').checked = p.isFree;
+            } else {
+                document.getElementById('modal-title').innerText = 'Nuovo Prodotto'; document.getElementById('edit-prod-id').value = ''; document.getElementById('prod-name').value = ''; document.getElementById('prod-emoji').value = ''; document.getElementById('prod-price').value = ''; document.getElementById('prod-promo-qty').value = ''; document.getElementById('prod-promo-price').value = ''; document.getElementById('prod-is-free').checked = false;
+            }
+        }
+
+        function closeProductModal() { document.getElementById('product-modal').classList.remove('flex'); document.getElementById('product-modal').classList.add('hidden'); }
+
+        function saveProduct() {
+            const id = document.getElementById('edit-prod-id').value, name = document.getElementById('prod-name').value;
+            if (!name) { showCustomAlert("Errore", "Inserisci il nome del prodotto", "❌"); return; }
+            const existingP = id ? products.find(x => x.id === id) : null;
+            const newP = { 
+                id: id || Date.now().toString(), 
+                name, 
+                emoji: document.getElementById('prod-emoji').value || '🏷️', 
+                price: parseFloat(document.getElementById('prod-price').value) || 0, 
+                promoQty: parseInt(document.getElementById('prod-promo-qty').value) || 0, 
+                promoPrice: parseFloat(document.getElementById('prod-promo-price').value) || 0, 
+                isFree: document.getElementById('prod-is-free').checked,
+                QUANTITA_VENDUTA: existingP ? (existingP.QUANTITA_VENDUTA || 0) : 0,
+                RICAVO_TOTALE: existingP ? (existingP.RICAVO_TOTALE || 0) : 0
+            };
+            if (id) { const index = products.findIndex(x => x.id === id); products[index] = newP; } else products.push(newP);
+            saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products); closeProductModal(); renderProductsGrid(); renderProductsTable();
+        }
+
+        function deleteProduct(id) { showCustomConfirm("Elimina", "Vuoi eliminare questo prodotto?", "Elimina", () => { products = products.filter(p => p.id !== id); saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products); renderProductsGrid(); renderProductsTable(); }, "🗑️"); }
+
+        function handleLogoUpload(event, logoNum) {
+            const file = event.target.files[0];
+            if (file) { const reader = new FileReader(); reader.onload = function(e) { logos[`logo${logoNum}`] = e.target.result; saveData('EVENTO_PROLOCO_MAPPANO/LOGOS', logos); renderLogos(); }; reader.readAsDataURL(file); }
+        }
+
+        function renderLogos() {
+            ['1', '2'].forEach(num => {
+                const container = document.getElementById(`logo${num}-container`);
+                if (logos[`logo${num}`]) container.innerHTML = `<img src="${logos[`logo${num}`]}" class="w-full h-full object-cover">`;
+                else container.innerHTML = `<span class="text-[10px] text-slate-400 font-bold text-center">Logo ${num}</span>`;
+            });
+        }
+
+        function clearLogos() { logos = { logo1: null, logo2: null }; db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').remove(); renderLogos(); }
+    </script>
+</body>
+</html>
