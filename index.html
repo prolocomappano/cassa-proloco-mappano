@@ -26,14 +26,8 @@
 <body class="bg-slate-100 text-slate-800 h-screen w-screen overflow-hidden flex flex-col font-sans">
 
     <!-- HEADER FISSO -->
-    <header class="bg-[#1a237e] text-white shadow-md px-4 py-2 flex items-center justify-between shrink-0 h-16">
+    <header class="bg-[#1a237e] text-white shadow-md px-6 py-2 flex items-center justify-between shrink-0 h-16">
         <div class="flex items-center space-x-3">
-            <div id="logo1-container" class="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow border border-indigo-900">
-                <span class="text-xs text-slate-400 font-bold text-center p-1">Logo 1</span>
-            </div>
-            <div id="logo2-container" class="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow border border-indigo-900">
-                <span class="text-xs text-slate-400 font-bold text-center p-1">Logo 2</span>
-            </div>
             <div>
                 <h1 class="text-lg font-black tracking-wide leading-tight">PRO LOCO MAPPANO</h1>
                 <p class="text-xs text-blue-200" id="current-date">Oggi</p>
@@ -49,9 +43,6 @@
             </button>
             <button onclick="switchTab('statistiche')" id="btn-tab-statistiche" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
                 <span class="text-xl">📊</span><span>Report</span>
-            </button>
-            <button onclick="switchTab('impostazioni')" id="btn-tab-impostazioni" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
-                <span class="text-xl">⚙️</span><span>Impostazioni</span>
             </button>
         </div>
     </header>
@@ -179,24 +170,6 @@
                 </div>
             </div>
         </section>
-
-        <!-- ================= SEZIONE IMPOSTAZIONI ================= -->
-        <section id="view-impostazioni" class="flex-1 hidden h-full overflow-y-auto p-6 bg-slate-100">
-            <div class="max-w-xl mx-auto bg-white rounded-2xl shadow p-6 border border-slate-200">
-                <h2 class="text-xl font-black text-slate-800 mb-4">Carica Loghi Evento</h2>
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">
-                        <p class="font-bold text-sm mb-2 text-slate-700">Logo 1</p>
-                        <input type="file" accept="image/*" onchange="handleLogoUpload(event, 1)" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
-                    </div>
-                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">
-                        <p class="font-bold text-sm mb-2 text-slate-700">Logo 2</p>
-                        <input type="file" accept="image/*" onchange="handleLogoUpload(event, 2)" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
-                    </div>
-                </div>
-                <button onclick="clearLogos()" class="w-full py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition">Rimuovi Loghi</button>
-            </div>
-        </section>
     </main>
 
     <!-- MODALI -->
@@ -295,7 +268,6 @@
         let products = defaultProducts;
         let cart = [];
         let transactions = [];
-        let logos = { logo1: null, logo2: null };
         let metodoPagamentoSelezionato = 'Contanti';
 
         function loadData() {
@@ -326,12 +298,6 @@
                 }
                 updateStatsUI();
             });
-
-            db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').on('value', (snapshot) => {
-                const data = snapshot.val();
-                logos = data || { logo1: null, logo2: null };
-                renderLogos();
-            });
         }
         
         function saveData(key, data) {
@@ -342,8 +308,6 @@
                     obj[safeKey] = p;
                 });
                 db.ref('EVENTO_PROLOCO_MAPPANO/PRODOTTI').set(obj);
-            } else if (key === 'EVENTO_PROLOCO_MAPPANO/LOGOS') {
-                db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').set(data);
             }
         }
 
@@ -414,7 +378,7 @@
         };
 
         function switchTab(tabName) {
-            ['cassa', 'prodotti', 'statistiche', 'impostazioni'].forEach(t => {
+            ['cassa', 'prodotti', 'statistiche'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
                 document.getElementById(`btn-tab-${t}`).className = "flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800";
             });
@@ -702,27 +666,6 @@
         }
 
         function deleteProduct(id) { showCustomConfirm("Elimina", "Vuoi eliminare questo prodotto?", "Elimina", () => { products = products.filter(p => p.id !== id); saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products); renderProductsGrid(); renderProductsTable(); }, "🗑️"); }
-
-        function handleLogoUpload(event, logoNum) {
-            const file = event.target.files[0];
-            if (file) { const reader = new FileReader(); reader.onload = function(e) { logos[`logo${logoNum}`] = e.target.result; saveData('EVENTO_PROLOCO_MAPPANO/LOGOS', logos); renderLogos(); }; reader.readAsDataURL(file); }
-        }
-
-        function renderLogos() {
-            ['1', '2'].forEach(num => {
-                const container = document.getElementById(`logo${num}-container`);
-                if (logos[`logo${num}`]) {
-                    container.innerHTML = `<img src="${logos[`logo${num}`]}" class="w-full h-full object-cover">`;
-                } else if (num === '1') {
-                    // Inserimento predefinito del logo Instagram della Pro Loco con fallback
-                    container.innerHTML = `<img src="https://instagram.ftrn3-1.fna.fbcdn.net/v/t51.2885-19/448842165_345700148532450_5587747766324838634_n.jpg?stp=dst-jpg_s150x150&_nc_cat=104&ccb=1-7&_nc_sid=1c3e37" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://i.ibb.co/68Z2Z2Z/placeholder.png';">`;
-                } else {
-                    container.innerHTML = `<span class="text-[10px] text-slate-400 font-bold text-center">Logo ${num}</span>`;
-                }
-            });
-        }
-
-        function clearLogos() { logos = { logo1: null, logo2: null }; db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').remove(); renderLogos(); }
     </script>
 </body>
 </html>
