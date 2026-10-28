@@ -28,11 +28,9 @@
     <!-- HEADER FISSO -->
     <header class="bg-[#1a237e] text-white shadow-md px-4 py-2 flex items-center justify-between shrink-0 h-16">
         <div class="flex items-center space-x-3">
-            <div id="logo1-container" class="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow border border-indigo-900">
-                <span class="text-xs text-slate-400 font-bold text-center p-1">Logo 1</span>
-            </div>
-            <div id="logo2-container" class="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow border border-indigo-900">
-                <span class="text-xs text-slate-400 font-bold text-center p-1">Logo 2</span>
+            <!-- LOGO FISSO PRO LOCO MAPPANO -->
+            <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow border border-indigo-900 shrink-0">
+                <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=" alt="Logo Pro Loco Mappano" id="logo-img" class="w-full h-full object-contain p-0.5 bg-white">
             </div>
             <div>
                 <h1 class="text-lg font-black tracking-wide leading-tight">PRO LOCO MAPPANO</h1>
@@ -49,9 +47,6 @@
             </button>
             <button onclick="switchTab('statistiche')" id="btn-tab-statistiche" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
                 <span class="text-xl">📊</span><span>Report</span>
-            </button>
-            <button onclick="switchTab('impostazioni')" id="btn-tab-impostazioni" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
-                <span class="text-xl">⚙️</span><span>Impostazioni</span>
             </button>
         </div>
     </header>
@@ -179,24 +174,6 @@
                 </div>
             </div>
         </section>
-
-        <!-- ================= SEZIONE IMPOSTAZIONI ================= -->
-        <section id="view-impostazioni" class="flex-1 hidden h-full overflow-y-auto p-6 bg-slate-100">
-            <div class="max-w-xl mx-auto bg-white rounded-2xl shadow p-6 border border-slate-200">
-                <h2 class="text-xl font-black text-slate-800 mb-4">Carica Loghi Evento</h2>
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">
-                        <p class="font-bold text-sm mb-2 text-slate-700">Logo 1</p>
-                        <input type="file" accept="image/*" onchange="handleLogoUpload(event, 1)" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
-                    </div>
-                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">
-                        <p class="font-bold text-sm mb-2 text-slate-700">Logo 2</p>
-                        <input type="file" accept="image/*" onchange="handleLogoUpload(event, 2)" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
-                    </div>
-                </div>
-                <button onclick="clearLogos()" class="w-full py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition">Rimuovi Loghi</button>
-            </div>
-        </section>
     </main>
 
     <!-- MODALI -->
@@ -217,6 +194,33 @@
             <div class="flex space-x-3">
                 <button onclick="chiudiOffertaLibera()" class="flex-1 py-3.5 bg-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:bg-slate-300 transition">Annulla</button>
                 <button onclick="confermaIncassoOfferta()" class="flex-1 py-3.5 bg-emerald-600 text-white rounded-xl font-black text-lg shadow-lg hover:bg-emerald-700 transition">Incassa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE MODIFICA SCONTRINO -->
+    <div id="edit-transaction-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
+            <h3 class="text-xl font-black text-slate-800 mb-4">Modifica Scontrino</h3>
+            <input type="hidden" id="edit-trans-id">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Metodo di Pagamento</label>
+                    <select id="edit-trans-payment" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 bg-white">
+                        <option value="Contanti">Contanti</option>
+                        <option value="SumUp">SumUp</option>
+                        <option value="Satispay">Satispay</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Totale Scontrino (€)</label>
+                    <input type="number" step="0.5" id="edit-trans-total" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-black text-xl text-[#1a237e]">
+                </div>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeEditTransactionModal()" class="flex-1 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-300 transition">Annulla</button>
+                <button onclick="saveEditedTransaction()" class="flex-1 py-3 bg-[#1a237e] text-white rounded-xl font-bold shadow hover:bg-indigo-900 transition">Salva Modifiche</button>
             </div>
         </div>
     </div>
@@ -282,6 +286,15 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // Caricamento in tempo reale dell'immagine del logo da Firebase se l'amministratore la carica, 
+        // altrimenti usa il logo di default incorporato.
+        db.ref('EVENTO_PROLOCO_MAPPANO/LOGO_UFFICIALE').on('value', (snapshot) => {
+            const customLogo = snapshot.val();
+            if (customLogo) {
+                document.getElementById('logo-img').src = customLogo;
+            }
+        });
+
         const defaultProducts = [
             { id: '1', name: 'Castagne', emoji: '🌰', price: 3.50, promoQty: 0, promoPrice: 0, isFree: false, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 },
             { id: '2', name: 'Frittelle', emoji: '🍩', price: 3.50, promoQty: 0, promoPrice: 0, isFree: false, QUANTITA_VENDUTA: 0, RICAVO_TOTALE: 0 },
@@ -295,7 +308,6 @@
         let products = defaultProducts;
         let cart = [];
         let transactions = [];
-        let logos = { logo1: null, logo2: null };
         let metodoPagamentoSelezionato = 'Contanti';
 
         function loadData() {
@@ -326,12 +338,6 @@
                 }
                 updateStatsUI();
             });
-
-            db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').on('value', (snapshot) => {
-                const data = snapshot.val();
-                logos = data || { logo1: null, logo2: null };
-                renderLogos();
-            });
         }
         
         function saveData(key, data) {
@@ -342,19 +348,31 @@
                     obj[safeKey] = p;
                 });
                 db.ref('EVENTO_PROLOCO_MAPPANO/PRODOTTI').set(obj);
-            } else if (key === 'EVENTO_PROLOCO_MAPPANO/LOGOS') {
-                db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').set(data);
             }
         }
 
         function salvaTransazioniNelCloud() {
-            let incassoTotale = transactions.reduce((acc, t) => acc + (t.TOTALE_INCASSATO_SCONTRINO || 0), 0);
+            let incassoTotale = 0;
+            let incassoContanti = 0;
+            let incassoSumup = 0;
+            let incassoSatispay = 0;
+
+            transactions.forEach(t => {
+                let tot = (t.TOTALE_INCASSATO_SCONTRINO || 0);
+                incassoTotale += tot;
+                if (t.METODO_PAGAMENTO === 'Contanti') incassoContanti += tot;
+                else if (t.METODO_PAGAMENTO === 'SumUp') incassoSumup += tot;
+                else if (t.METODO_PAGAMENTO === 'Satispay') incassoSatispay += tot;
+            });
             
             let objStorico = {};
             transactions.forEach(t => { objStorico[t.id] = t; });
 
             let payload = {
                 INCASSO_TOTALE: Number(incassoTotale.toFixed(2)),
+                INCASSO_CONTANTI: Number(incassoContanti.toFixed(2)),
+                INCASSO_SUMUP: Number(incassoSumup.toFixed(2)),
+                INCASSO_SATISPAY: Number(incassoSatispay.toFixed(2)),
                 STORICO_SCONTRINI: objStorico
             };
 
@@ -398,7 +416,7 @@
         };
 
         function switchTab(tabName) {
-            ['cassa', 'prodotti', 'statistiche', 'impostazioni'].forEach(t => {
+            ['cassa', 'prodotti', 'statistiche'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
                 document.getElementById(`btn-tab-${t}`).className = "flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800";
             });
@@ -598,10 +616,49 @@
                                 </div>
                                 <span class="text-slate-500 font-medium text-xs">${descItems}</span>
                             </div>
-                            <button onclick="stornaScontrino('${t.id}')" class="ml-3 bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-red-200 transition">Storna</button>
+                            <div class="flex space-x-1.5 ml-3">
+                                <button onclick="openEditTransactionModal('${t.id}')" class="bg-indigo-50 text-indigo-600 px-2.5 py-1.5 rounded-lg font-bold text-xs hover:bg-indigo-100 transition">Modifica</button>
+                                <button onclick="stornaScontrino('${t.id}')" class="bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg font-bold text-xs hover:bg-red-200 transition">Storna</button>
+                            </div>
                         </div>`;
                 });
             }
+        }
+
+        function openEditTransactionModal(id) {
+            const t = transactions.find(x => x.id === id);
+            if (!t) return;
+            document.getElementById('edit-trans-id').value = t.id;
+            document.getElementById('edit-trans-payment').value = t.METODO_PAGAMENTO || 'Contanti';
+            document.getElementById('edit-trans-total').value = t.TOTALE_INCASSATO_SCONTRINO || 0;
+            document.getElementById('edit-transaction-modal').classList.remove('hidden');
+            document.getElementById('edit-transaction-modal').classList.add('flex');
+        }
+
+        function closeEditTransactionModal() {
+            document.getElementById('edit-transaction-modal').classList.remove('flex');
+            document.getElementById('edit-transaction-modal').classList.add('hidden');
+        }
+
+        function saveEditedTransaction() {
+            const id = document.getElementById('edit-trans-id').value;
+            const newPayment = document.getElementById('edit-trans-payment').value;
+            const newTotal = parseFloat(document.getElementById('edit-trans-total').value);
+
+            if (isNaN(newTotal) || newTotal < 0) {
+                showCustomAlert("Importo Non Valido", "Inserisci un totale valido.", "❌");
+                return;
+            }
+
+            const t = transactions.find(x => x.id === id);
+            if (t) {
+                t.METODO_PAGAMENTO = newPayment;
+                t.TOTALE_INCASSATO_SCONTRINO = newTotal;
+            }
+
+            salvaTransazioniNelCloud();
+            closeEditTransactionModal();
+            updateStatsUI();
         }
 
         function stornaScontrino(id) { 
@@ -686,21 +743,6 @@
         }
 
         function deleteProduct(id) { showCustomConfirm("Elimina", "Vuoi eliminare questo prodotto?", "Elimina", () => { products = products.filter(p => p.id !== id); saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products); renderProductsGrid(); renderProductsTable(); }, "🗑️"); }
-
-        function handleLogoUpload(event, logoNum) {
-            const file = event.target.files[0];
-            if (file) { const reader = new FileReader(); reader.onload = function(e) { logos[`logo${logoNum}`] = e.target.result; saveData('EVENTO_PROLOCO_MAPPANO/LOGOS', logos); renderLogos(); }; reader.readAsDataURL(file); }
-        }
-
-        function renderLogos() {
-            ['1', '2'].forEach(num => {
-                const container = document.getElementById(`logo${num}-container`);
-                if (logos[`logo${num}`]) container.innerHTML = `<img src="${logos[`logo${num}`]}" class="w-full h-full object-cover">`;
-                else container.innerHTML = `<span class="text-[10px] text-slate-400 font-bold text-center">Logo ${num}</span>`;
-            });
-        }
-
-        function clearLogos() { logos = { logo1: null, logo2: null }; db.ref('EVENTO_PROLOCO_MAPPANO/LOGOS').remove(); renderLogos(); }
     </script>
 </body>
 </html>
