@@ -35,14 +35,17 @@
         </div>
 
         <div class="flex items-center space-x-2">
-            <button onclick="switchTab('cassa')" id="btn-tab-cassa" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-blue-400">
-                <span class="text-xl">🛒</span><span>Cassa</span>
+            <button onclick="switchTab('cassa')" id="btn-tab-cassa" class="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg transition active:scale-95 text-sm border border-blue-400">
+                <span>🛒</span><span>Cassa</span>
             </button>
-            <button onclick="switchTab('prodotti')" id="btn-tab-prodotti" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
-                <span class="text-xl">📋</span><span>Prodotti</span>
+            <button onclick="switchTab('prodotti')" id="btn-tab-prodotti" class="flex items-center space-x-2 px-3 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-sm border border-indigo-800">
+                <span>📋</span><span>Prodotti</span>
             </button>
-            <button onclick="switchTab('statistiche')" id="btn-tab-statistiche" class="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800">
-                <span class="text-xl">📊</span><span>Report</span>
+            <button onclick="switchTab('statistiche')" id="btn-tab-statistiche" class="flex items-center space-x-2 px-3 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-sm border border-indigo-800">
+                <span>📊</span><span>Report</span>
+            </button>
+            <button onclick="switchTab('eventi')" id="btn-tab-eventi" class="flex items-center space-x-2 px-3 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-sm border border-indigo-800">
+                <span>📁</span><span>Eventi Passati</span>
             </button>
         </div>
     </header>
@@ -122,9 +125,14 @@
             <div class="max-w-6xl mx-auto">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-black text-slate-800">Report Vendite e Incassi</h2>
-                    <button onclick="resetStats()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-red-100 transition">
-                        🔄 Reset Giornaliero
-                    </button>
+                    <div class="flex gap-3">
+                        <button onclick="apriModaleFineEvento()" class="bg-emerald-600 text-white border border-emerald-500 px-4 py-2 rounded-xl font-bold text-sm hover:bg-emerald-700 transition shadow">
+                            🏁 Fine Evento
+                        </button>
+                        <button onclick="resetStats()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-red-100 transition">
+                            🔄 Reset Giornaliero
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-6 mb-6">
@@ -170,6 +178,18 @@
                 </div>
             </div>
         </section>
+
+        <!-- ================= SEZIONE EVENTI PASSATI ================= -->
+        <section id="view-eventi" class="flex-1 hidden h-full overflow-y-auto p-6 bg-slate-100">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-slate-800">Archivio Eventi Passati</h2>
+                </div>
+                <div id="past-events-container" class="space-y-4">
+                    <!-- Generato via JS -->
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- MODALI -->
@@ -179,6 +199,20 @@
             <h3 id="custom-alert-title" class="text-xl font-black text-slate-800 mb-2">Attenzione</h3>
             <p id="custom-alert-msg" class="text-sm text-slate-500 mb-6">Messaggio</p>
             <div id="custom-alert-buttons" class="flex space-x-3"></div>
+        </div>
+    </div>
+
+    <!-- MODALE FINE EVENTO -->
+    <div id="fine-evento-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="text-4xl mb-2">🏁</div>
+            <h3 class="text-xl font-black text-slate-800 mb-1">Concludi Evento</h3>
+            <p class="text-xs text-slate-500 mb-4">Inserisci il nome da dare a questo evento passato:</p>
+            <input type="text" id="input-nome-evento" class="w-full px-4 py-3 rounded-xl border-2 border-indigo-200 text-center text-lg font-bold text-[#1a237e] mb-6 focus:outline-none focus:border-[#1a237e]" placeholder="Es. Festa della Castagna 2026">
+            <div class="flex space-x-3">
+                <button onclick="chiudiModaleFineEvento()" class="flex-1 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-300 transition">Annulla</button>
+                <button onclick="salvaFineEvento()" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-black shadow-lg hover:bg-emerald-700 transition">Salva e Azzera</button>
+            </div>
         </div>
     </div>
 
@@ -268,6 +302,7 @@
         let products = defaultProducts;
         let cart = [];
         let transactions = [];
+        let pastEvents = [];
         let metodoPagamentoSelezionato = 'Contanti';
 
         function loadData() {
@@ -297,6 +332,16 @@
                     transactions = [];
                 }
                 updateStatsUI();
+            });
+
+            db.ref('EVENTO_PROLOCO_MAPPANO/EVENTI_PASSATI').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    pastEvents = Object.values(data);
+                } else {
+                    pastEvents = [];
+                }
+                renderPastEventsUI();
             });
         }
         
@@ -378,12 +423,12 @@
         };
 
         function switchTab(tabName) {
-            ['cassa', 'prodotti', 'statistiche'].forEach(t => {
+            ['cassa', 'prodotti', 'statistiche', 'eventi'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
-                document.getElementById(`btn-tab-${t}`).className = "flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-indigo-800";
+                document.getElementById(`btn-tab-${t}`).className = "flex items-center space-x-2 px-3 py-2 bg-indigo-900 text-blue-200 rounded-xl font-bold shadow-lg transition active:scale-95 text-sm border border-indigo-800";
             });
             document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            document.getElementById(`btn-tab-${tabName}`).className = "flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg transition active:scale-95 text-base border border-blue-400";
+            document.getElementById(`btn-tab-${tabName}`).className = "flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg transition active:scale-95 text-sm border border-blue-400";
         }
 
         function renderProductsGrid() {
@@ -582,6 +627,131 @@
                         </div>`;
                 });
             }
+        }
+
+        // Funzioni per la gestione di Fine Evento e Archiviazione
+        function apriModaleFineEvento() {
+            if (transactions.length === 0) {
+                showCustomAlert("Attenzione", "Non ci sono dati o transazioni registrate per questo evento.", "⚠️");
+                return;
+            }
+            document.getElementById('input-nome-evento').value = '';
+            document.getElementById('fine-evento-modal').classList.remove('hidden');
+            document.getElementById('fine-evento-modal').classList.add('flex');
+        }
+
+        function chiudiModaleFineEvento() {
+            document.getElementById('fine-evento-modal').classList.remove('flex');
+            document.getElementById('fine-evento-modal').classList.add('hidden');
+        }
+
+        function salvaFineEvento() {
+            const nomeEvento = document.getElementById('input-nome-evento').value.trim();
+            if (!nomeEvento) {
+                showCustomAlert("Errore", "Inserisci un nome valido per l'evento.", "❌");
+                return;
+            }
+
+            let totalIncasso = transactions.reduce((acc, t) => acc + (t.TOTALE_INCASSATO_SCONTRINO || 0), 0);
+            let totalePezzi = 0;
+            transactions.forEach(t => {
+                (t.DETTAGLIO_ARTICOLI || []).forEach(i => totalePezzi += (i.QUANTITA || 0));
+            });
+
+            let nuovoEventoPassato = {
+                id: Date.now().toString(),
+                nome: nomeEvento,
+                dataChiusura: new Date().toLocaleDateString('it-IT'),
+                incassoTotale: totalIncasso,
+                pezziVenduti: totalePezzi,
+                transazioni: transactions,
+                prodottiRiepilogo: products.map(p => ({ name: p.name, emoji: p.emoji, venduti: p.QUANTITA_VENDUTA || 0, ricavo: p.RICAVO_TOTALE || 0 }))
+            };
+
+            pastEvents.unshift(nuovoEventoPassato);
+            db.ref('EVENTO_PROLOCO_MAPPANO/EVENTI_PASSATI').set(pastEvents);
+
+            chiudiModaleFineEvento();
+            resetStatsazzeraTuttoSilenzioso();
+            showCustomAlert("Successo", "Evento salvato con successo nell'archivio!", "✅");
+        }
+
+        function resetStatsazzeraTuttoSilenzioso() {
+            products.forEach(p => {
+                p.QUANTITA_VENDUTA = 0;
+                p.RICAVO_TOTALE = 0;
+            });
+            saveData('EVENTO_PROLOCO_MAPPANO/PRODOTTI', products);
+            transactions = [];
+            db.ref('EVENTO_PROLOCO_MAPPANO/TRANSAZIONI').remove();
+            updateStatsUI();
+        }
+
+        function renderPastEventsUI() {
+            const container = document.getElementById('past-events-container');
+            if (!pastEvents || pastEvents.length === 0) {
+                container.innerHTML = `<div class="bg-white rounded-2xl shadow p-8 text-center text-slate-400"><p class="text-4xl mb-2">📁</p><p class="text-sm font-medium">Nessun evento passato archiviato.</p></div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            pastEvents.forEach(ev => {
+                let dettagliHtml = '';
+                if (ev.prodottiRiepilogo) {
+                    ev.prodottiRiepilogo.forEach(pr => {
+                        if (pr.venduti > 0) {
+                            dettagliHtml += `<span class="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded-lg font-bold">${pr.emoji} ${pr.name}: ${pr.venduti} pz (€${pr.ricavo.toFixed(2)})</span>`;
+                        }
+                    });
+                }
+
+                container.innerHTML += `
+                    <div class="bg-white rounded-2xl shadow p-5 border border-slate-200 flex flex-col gap-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-black text-indigo-900">${ev.nome}</h3>
+                                <p class="text-xs text-slate-400 font-semibold">Chiuso il: ${ev.dataChiusura || 'Data non disponibile'}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="modificaNomeEvento('${ev.id}')" class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5 rounded-xl font-bold text-xs transition">✏️ Rinomina</button>
+                                <button onclick="eliminaEventoPassato('${ev.id}')" class="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-xl font-bold text-xs transition">🗑️ Elimina</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-400 uppercase">Incasso Evento</p>
+                                <p class="text-xl font-black text-emerald-600">€${(ev.incassoTotale || 0).toFixed(2)}</p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-400 uppercase">Pezzi Venduti</p>
+                                <p class="text-xl font-black text-[#1a237e]">${ev.pezziVenduti || 0}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            ${dettagliHtml || '<span class="text-xs text-slate-400">Nessun dettaglio prodotti</span>'}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function modificaNomeEvento(id) {
+            let ev = pastEvents.find(e => e.id === id);
+            if (!ev) return;
+            let nuovoNome = prompt("Inserisci il nuovo nome per l'evento:", ev.nome);
+            if (nuovoNome !== null && nuovoNome.trim() !== "") {
+                ev.nome = nuovoNome.trim();
+                db.ref('EVENTO_PROLOCO_MAPPANO/EVENTI_PASSATI').set(pastEvents);
+                renderPastEventsUI();
+            }
+        }
+
+        function eliminaEventoPassato(id) {
+            showCustomConfirm("Elimina Evento", "Sei sicuro di voler eliminare questo evento dall'archivio?", "Sì, Elimina", () => {
+                pastEvents = pastEvents.filter(e => e.id !== id);
+                db.ref('EVENTO_PROLOCO_MAPPANO/EVENTI_PASSATI').set(pastEvents);
+                renderPastEventsUI();
+            }, "🗑️");
         }
 
         function stornaScontrino(id) { 
