@@ -84,9 +84,18 @@
                         <span class="text-base font-bold text-slate-600">TOTALE:</span>
                         <span id="cart-total" class="text-3xl font-black text-[#1a237e]">€0,00</span>
                     </div>
-                    <button onclick="chiediOffertaLiberaEIncassa()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-2xl font-black text-xl shadow-lg transition flex items-center justify-center gap-3 border-2 border-emerald-400">
-                        <span>💰</span> INCASSA SUBITO
-                    </button>
+                    <!-- TRE PULSANTI DI INCASSO -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="chiediOffertaLiberaEIncassa('Contanti')" class="py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl font-black text-xs shadow transition flex flex-col items-center justify-center gap-1 border border-emerald-400">
+                            <span class="text-base">💵</span> <span>CONTANTI</span>
+                        </button>
+                        <button onclick="chiediOffertaLiberaEIncassa('SumUp')" class="py-3 bg-slate-900 hover:bg-black active:scale-95 text-white rounded-xl font-black text-xs shadow transition flex flex-col items-center justify-center gap-1 border border-slate-700">
+                            <span class="text-base">💳</span> <span>SUMUP</span>
+                        </button>
+                        <button onclick="chiediOffertaLiberaEIncassa('Satispay')" class="py-3 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-xl font-black text-xs shadow transition flex flex-col items-center justify-center gap-1 border border-red-400">
+                            <span class="text-base">📱</span> <span>SATISPAY</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -129,14 +138,31 @@
 
                 <div class="grid grid-cols-2 gap-6 mb-6">
                     <div class="space-y-6">
-                        <div class="flex gap-4">
-                            <div class="flex-1 bg-white p-6 rounded-2xl shadow border border-slate-200">
+                        <!-- Riquadri principali grandi -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white p-6 rounded-2xl shadow border border-slate-200">
                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Incasso Totale</p>
                                 <h3 id="stat-total-incasso" class="text-4xl font-black text-emerald-600">€0,00</h3>
                             </div>
-                            <div class="flex-1 bg-white p-6 rounded-2xl shadow border border-slate-200">
+                            <div class="bg-white p-6 rounded-2xl shadow border border-slate-200">
                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pezzi Venduti</p>
                                 <h3 id="stat-total-pezzi" class="text-4xl font-black text-[#1a237e]">0</h3>
+                            </div>
+                        </div>
+
+                        <!-- Riquadri incassi per metodo di pagamento -->
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-white p-4 rounded-2xl shadow border border-slate-200 text-center">
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">💵 Contanti</p>
+                                <h4 id="stat-incasso-contanti" class="text-xl font-black text-emerald-700">€0,00</h4>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl shadow border border-slate-200 text-center">
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">💳 SumUp</p>
+                                <h4 id="stat-incasso-sumup" class="text-xl font-black text-slate-900">€0,00</h4>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl shadow border border-slate-200 text-center">
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">📱 Satispay</p>
+                                <h4 id="stat-incasso-satispay" class="text-xl font-black text-red-600">€0,00</h4>
                             </div>
                         </div>
 
@@ -146,7 +172,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-200 flex flex-col h-[500px]">
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-200 flex flex-col h-[560px]">
                         <h3 class="font-bold text-slate-700 mb-4 text-base border-b pb-2">Storico Transazioni</h3>
                         <div id="transactions-list" class="flex-1 overflow-y-auto space-y-3 pr-2"></div>
                     </div>
@@ -270,6 +296,7 @@
         let cart = [];
         let transactions = [];
         let logos = { logo1: null, logo2: null };
+        let metodoPagamentoSelezionato = 'Contanti';
 
         function loadData() {
             db.ref('EVENTO_PROLOCO_MAPPANO/PRODOTTI').on('value', (snapshot) => {
@@ -453,8 +480,9 @@
             document.getElementById('cart-total').innerText = `€${calculateCartTotal().toFixed(2)}`;
         }
 
-        function chiediOffertaLiberaEIncassa() {
+        function chiediOffertaLiberaEIncassa(metodo) {
             if (cart.length === 0) return;
+            metodoPagamentoSelezionato = metodo;
             if (cart.some(i => i.isFree)) {
                 document.getElementById('free-offer-amount').value = '';
                 document.getElementById('free-offer-modal').classList.remove('hidden');
@@ -498,6 +526,7 @@
             let transazione = {
                 id: Date.now().toString(),
                 ORARIO: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+                METODO_PAGAMENTO: metodoPagamentoSelezionato,
                 DETTAGLIO_ARTICOLI: cartItemsClean,
                 TOTALE_INCASSATO_SCONTRINO: calculateCartTotal()
             };
@@ -512,8 +541,16 @@
 
         function updateStatsUI() {
             let totalIncasso = 0, totalPezzi = 0;
+            let incassoContanti = 0, incassoSumup = 0, incassoSatispay = 0;
+
             transactions.forEach(t => {
-                totalIncasso += (t.TOTALE_INCASSATO_SCONTRINO || 0);
+                let totaleScontrino = (t.TOTALE_INCASSATO_SCONTRINO || 0);
+                totalIncasso += totaleScontrino;
+
+                if (t.METODO_PAGAMENTO === 'Contanti') incassoContanti += totaleScontrino;
+                else if (t.METODO_PAGAMENTO === 'SumUp') incassoSumup += totaleScontrino;
+                else if (t.METODO_PAGAMENTO === 'Satispay') incassoSatispay += totaleScontrino;
+
                 let itemsList = t.DETTAGLIO_ARTICOLI || [];
                 itemsList.forEach(i => {
                     let qty = i.QUANTITA || 0;
@@ -523,6 +560,9 @@
 
             document.getElementById('stat-total-incasso').innerText = `€${totalIncasso.toFixed(2)}`;
             document.getElementById('stat-total-pezzi').innerText = totalPezzi;
+            document.getElementById('stat-incasso-contanti').innerText = `€${incassoContanti.toFixed(2)}`;
+            document.getElementById('stat-incasso-sumup').innerText = `€${incassoSumup.toFixed(2)}`;
+            document.getElementById('stat-incasso-satispay').innerText = `€${incassoSatispay.toFixed(2)}`;
 
             const breakdownContainer = document.getElementById('stat-breakdown');
             breakdownContainer.innerHTML = '';
@@ -545,11 +585,17 @@
                     let itemsList = t.DETTAGLIO_ARTICOLI || [];
                     let descItems = itemsList.map(i => `${i.QUANTITA}x ${i.ARTICOLO_ACQUISTATO}`).join(', ');
                     let orario = t.ORARIO || '';
+                    let metodo = t.METODO_PAGAMENTO || 'Contanti';
+                    let badgeColor = metodo === 'Contanti' ? 'bg-emerald-100 text-emerald-800' : (metodo === 'SumUp' ? 'bg-slate-900 text-white' : 'bg-red-100 text-red-800');
                     let totale = t.TOTALE_INCASSATO_SCONTRINO || 0;
                     listContainer.innerHTML += `
                         <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
                             <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-1"><span class="font-bold text-indigo-900 bg-indigo-100 px-1.5 py-0.5 rounded text-xs">${orario}</span><span class="font-black text-emerald-600 text-base">€${totale.toFixed(2)}</span></div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-bold text-indigo-900 bg-indigo-100 px-1.5 py-0.5 rounded text-xs">${orario}</span>
+                                    <span class="font-bold px-2 py-0.5 rounded text-xs ${badgeColor}">${metodo}</span>
+                                    <span class="font-black text-emerald-600 text-base">€${totale.toFixed(2)}</span>
+                                </div>
                                 <span class="text-slate-500 font-medium text-xs">${descItems}</span>
                             </div>
                             <button onclick="stornaScontrino('${t.id}')" class="ml-3 bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-red-200 transition">Storna</button>
