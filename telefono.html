@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Live Incassi - Pro Loco Mappano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans p-4">
+
+    <!-- HEADER -->
+    <header class="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+        <div>
+            <h1 class="text-xl font-black tracking-wide text-white">📊 LIVE INCASSI</h1>
+            <p class="text-xs text-slate-400">Pro Loco Mappano</p>
+        </div>
+        <div id="connection-status" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full text-xs font-bold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col gap-4 max-w-md mx-auto w-full">
+        
+        <!-- INCASSO TOTALE CARD -->
+        <div class="bg-gradient-to-br from-indigo-900 to-slate-800 p-6 rounded-3xl shadow-xl border border-indigo-500/30 text-center">
+            <p class="text-xs font-bold text-indigo-300 uppercase tracking-wider mb-1">Incasso Totale Attuale</p>
+            <h2 id="live-total" class="text-5xl font-black text-emerald-400">€0,00</h2>
+            <p id="live-pezzi" class="text-xs text-slate-300 mt-2 font-medium">0 pezzi totali venduti</p>
+        </div>
+
+        <!-- SUDDIVISIONE METODI DI PAGAMENTO -->
+        <div class="grid grid-cols-2 gap-3">
+            <!-- Contanti -->
+            <div class="bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-700 text-center flex flex-col justify-between">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">💵 Contanti</span>
+                <h3 id="live-contanti" class="text-2xl font-black text-emerald-400 my-2">€0,00</h3>
+                <span id="perc-contanti" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-bold">0%</span>
+            </div>
+
+            <!-- Satispay -->
+            <div class="bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-700 text-center flex flex-col justify-between">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">📱 Satispay</span>
+                <h3 id="live-satispay" class="text-2xl font-black text-red-400 my-2">€0,00</h3>
+                <span id="perc-satispay" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-bold">0%</span>
+            </div>
+        </div>
+
+        <!-- SUMUP (EXTRA) -->
+        <div class="bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-700 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">💳 SumUp (Carte)</span>
+            <span id="live-sumup" class="text-lg font-black text-white">€0,00</span>
+        </div>
+
+        <!-- ULTIME TRANSAZIONI IN TEMPO REALE -->
+        <div class="bg-slate-800/50 rounded-2xl p-4 border border-slate-800 flex-1 flex flex-col mt-2">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Ultimi Scontrini Emessi</h3>
+            <div id="live-transactions" class="space-y-2 overflow-y-auto max-h-48 pr-1">
+                <p class="text-xs text-slate-500 text-center py-4">In attesa di transazioni...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- SCRIPT FIREBASE -->
+    <script>
+        const firebaseConfig = {
+            databaseURL: "https://cassa-proloco-mappano-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Ascolta in tempo reale i cambiamenti sul nodo delle transazioni
+        db.ref('EVENTO_PROLOCO_MAPPANO/TRANSAZIONI').on('value', (snapshot) => {
+            const data = snapshot.val();
+            
+            let totalIncasso = 0;
+            let incassoContanti = 0;
+            let incassoSatispay = 0;
+            let incassoSumup = 0;
+            let totalePezzi = 0;
+            let transactionsList = [];
+
+            if (data) {
+                if (data.STORICO_SCONTRINI) {
+                    transactionsList = Object.values(data.STORICO_SCONTRINI).reverse(); // Dal più recente
+                }
+            }
+
+            transactionsList.forEach(t => {
+                let importo = t.TOTALE_INCASSATO_SCONTRINO || 0;
+                totalIncasso += importo;
+
+                if (t.METODO_PAGAMENTO === 'Contanti') incassoContanti += importo;
+                else if (t.METODO_PAGAMENTO === 'Satispay') incassoSatispay += importo;
+                else if (t.METODO_PAGAMENTO === 'SumUp') incassoSumup += importo;
+
+                if (t.DETTAGLIO_ARTICOLI) {
+                    t.DETTAGLIO_ARTICOLI.forEach(i => {
+                        totalePezzi += (i.QUANTITA || 0);
+                    });
+                }
+            });
+
+            // Calcolo percentuali
+            let percC = totalIncasso > 0 ? Math.round((incassoContanti / totalIncasso) * 100) : 0;
+            let percS = totalIncasso > 0 ? Math.round((incassoSatispay / totalIncasso) * 100) : 0;
+
+            // Aggiornamento UI
+            document.getElementById('live-total').innerText = `€${totalIncasso.toFixed(2)}`;
+            document.getElementById('live-pezzi').innerText = `${totalePezzi} pezzi totali venduti`;
+            document.getElementById('live-contanti').innerText = `€${incassoContanti.toFixed(2)}`;
+            document.getElementById('perc-contanti').innerText = `${percC}% del totale`;
+            document.getElementById('live-satispay').innerText = `€${incassoSatispay.toFixed(2)}`;
+            document.getElementById('perc-satispay').innerText = `${percS}% del totale`;
+            document.getElementById('live-sumup').innerText = `€${incassoSumup.toFixed(2)}`;
+
+            // Render ultimi scontrini
+            const listContainer = document.getElementById('live-transactions');
+            if (transactionsList.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nessuna transazione registrata.</p>`;
+            } else {
+                listContainer.innerHTML = '';
+                // Mostriamo solo gli ultimi 5 per mantenere la schermata pulita e veloce
+                transactionsList.slice(0, 5).forEach(t => {
+                    let badgeColor = t.METODO_PAGAMENTO === 'Contanti' ? 'text-emerald-400 bg-emerald-500/10' : 
+                                     t.METODO_PAGAMENTO === 'Satispay' ? 'text-red-400 bg-red-500/10' : 'text-slate-200 bg-slate-700';
+                    
+                    let itemsDesc = (t.DETTAGLIO_ARTICOLI || []).map(i => `${i.QUANTITA}x ${i.ARTICOLO_ACQUISTATO}`).join(', ');
+
+                    listContainer.innerHTML += `
+                        <div class="bg-slate-800/90 p-2.5 rounded-xl border border-slate-700/50 flex items-center justify-between text-xs">
+                            <div>
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <span class="text-slate-400 font-bold">${t.ORARIO || ''}</span>
+                                    <span class="px-1.5 py-0.5 rounded font-bold ${badgeColor}">${t.METODO_PAGAMENTO}</span>
+                                </div>
+                                <p class="text-slate-300 truncate max-w-[200px]">${itemsDesc}</p>
+                            </div>
+                            <span class="font-black text-emerald-400 text-sm">€${(t.TOTALE_INCASSATO_SCONTRINO || 0).toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
