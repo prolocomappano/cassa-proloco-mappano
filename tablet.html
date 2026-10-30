@@ -282,8 +282,16 @@
             }
         });
 
+        // 🔥 FIREBASE CREDENTIALS CORRETTE INSERITE QUI
         const firebaseConfig = {
-            databaseURL: "https://cassa-proloco-mappano-default-rtdb.europe-west1.firebasedatabase.app"
+            apiKey: "AIzaSyAcY_m9YLQUPuB2ueMFnrBEg8q4NXgYxgU",
+            authDomain: "cassa-proloco-mappano.firebaseapp.com",
+            databaseURL: "https://cassa-proloco-mappano-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "cassa-proloco-mappano",
+            storageBucket: "cassa-proloco-mappano.firebasestorage.app",
+            messagingSenderId: "492706816408",
+            appId: "1:492706816408:web:6c0f4533ff78d94106cbed",
+            measurementId: "G-07KT9FBQLC"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -400,7 +408,6 @@
             alertConfirmCallback = null;
         }
 
-        // Funzione per aggiornare data e ora in tempo reale nel header
         function updateDateTime() {
             const now = new Date();
             const options = { 
@@ -581,6 +588,13 @@
                     let qty = i.QUANTITA || 0;
                     totalPezzi += qty;
                 });
+            });
+
+            // 🔥 AGGIUNTA FONDAMENTALE PER LA SINCRONIZZAZIONE DELLA CASSA TELEFONO
+            db.ref('incassi').set({
+                contanti: incassoContanti,
+                satispay: incassoSatispay,
+                sumup: incassoSumup
             });
 
             document.getElementById('stat-total-incasso').innerText = `€${totalIncasso.toFixed(2)}`;
